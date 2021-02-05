@@ -13,6 +13,8 @@
 ## -------------------- ##
 ## M4sh Initialization. ##
 ## -------------------- ##
+ac_cv_prog_cc_g=no
+ac_cv_prog_cxx_g=no
 
 # Be more Bourne compatible
 DUALCASE=1; export DUALCASE # for MKS sh
