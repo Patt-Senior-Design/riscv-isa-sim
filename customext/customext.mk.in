@@ -8,6 +8,7 @@ customext_srcs = \
 	dummy_rocc.cc \
 	cflush.cc \
 	lbcmp.cc \
+	pfd.cc \
 
 customext_CFLAGS = -fPIC
 
