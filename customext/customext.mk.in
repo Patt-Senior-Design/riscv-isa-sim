@@ -9,6 +9,7 @@ customext_srcs = \
 	cflush.cc \
 	lbcmp.cc \
 	pfd.cc \
+	pcr.cc \
 
 customext_CFLAGS = -fPIC
 
