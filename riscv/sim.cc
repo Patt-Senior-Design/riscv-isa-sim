@@ -46,7 +46,7 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
     start_pc(start_pc),
     dtb_file(dtb_file ? dtb_file : ""),
     dtb_enabled(dtb_enabled),
-    log_file(log_path),
+    log_file(),
     current_step(0),
     current_proc(0),
     debug(false),
@@ -56,6 +56,15 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
     debug_module(this, dm_config)
 {
   signal(SIGINT, &handle_signal);
+
+  if (log_path) {
+    log_file.open(log_path);
+    if (!log_file) {
+      std::ostringstream oss;
+      oss << "Failed to open log file at `" << log_path << "'";
+      throw std::runtime_error(oss.str());
+    }
+  }
 
   for (auto& x : mems)
     bus.add_device(x.first, x.second);
@@ -78,7 +87,7 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
   for (size_t i = 0; i < nprocs; i++) {
     int hart_id = hartids.empty() ? i : hartids[i];
     procs[i] = new processor_t(isa, priv, varch, this, hart_id, halted,
-                               log_file.get());
+                               log_file.is_open() ? log_file : std::cerr);
   }
 
   make_dtb();

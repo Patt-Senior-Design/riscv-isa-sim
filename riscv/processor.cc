@@ -24,7 +24,7 @@
 
 processor_t::processor_t(const char* isa, const char* priv, const char* varch,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
-                         FILE* log_file)
+                         std::ostream& log_file)
   : debug(false), halt_request(HR_NONE), sim(sim), ext(NULL), id(id), xlen(0),
   histogram_enabled(false), log_commits_enabled(false),
   log_file(log_file), halt_on_reset(halt_on_reset),
@@ -668,11 +668,12 @@ void processor_t::enter_debug_mode(uint8_t cause)
 void processor_t::take_trap(trap_t& t, reg_t epc)
 {
   if (debug) {
-    fprintf(log_file, "core %3d: exception %s, epc 0x%016" PRIx64 "\n",
-            id, t.name(), epc);
-    if (t.has_tval())
-      fprintf(log_file, "core %3d:           tval 0x%016" PRIx64 "\n",
-              id, t.get_tval());
+    log_file.printf("core %3d: exception %s, epc 0x%016" PRIx64 "\n",
+                    id, t.name(), epc);
+    if (t.has_tval()) {
+      log_file.printf("core %3d:           tval 0x%016" PRIx64 "\n",
+                      id, t.get_tval());
+    }
   }
 
   if (state.debug_mode) {
@@ -772,16 +773,17 @@ void processor_t::disasm(insn_t insn)
     const char* sym = get_symbol(state.pc);
     if (sym != nullptr)
     {
-      fprintf(log_file, "core %3d: >>>>  %s\n", id, sym);
+      log_file.printf("core %3d: >>>>  %s\n", id, sym);
     }
 #endif
 
     if (executions != 1) {
-      fprintf(log_file, "core %3d: Executed %" PRIx64 " times\n", id, executions);
+      log_file.printf("core %3d: Executed %" PRIx64 " times\n", id, executions);
     }
 
-    fprintf(log_file, "core %3d: 0x%016" PRIx64 " (0x%08" PRIx64 ") %s\n",
-            id, state.pc, bits, disassembler->disassemble(insn).c_str());
+    log_file.printf("core %3d: 0x%016" PRIx64 " (0x%08" PRIx64 ") %s\n",
+                    id, state.pc, bits, disassembler->disassemble(insn).c_str());
+
     last_pc = state.pc;
     last_bits = bits;
     executions = 1;

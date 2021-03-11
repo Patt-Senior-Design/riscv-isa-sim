@@ -5,7 +5,6 @@
 
 #include "debug_module.h"
 #include "devices.h"
-#include "log_file.h"
 #include "processor.h"
 #include "simif.h"
 
@@ -14,6 +13,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <fstream>
 #include <sys/types.h>
 
 class mmu_t;
@@ -72,7 +72,7 @@ private:
   bool dtb_enabled;
   std::unique_ptr<clint_t> clint;
   bus_t bus;
-  log_file_t log_file;
+  std::ofstream log_file;
 
   processor_t* get_core(const std::string& i);
   void step(size_t n); // step through simulation

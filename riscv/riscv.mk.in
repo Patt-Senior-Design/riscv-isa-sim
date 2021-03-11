@@ -34,6 +34,7 @@ riscv_hdrs = \
 	jtag_dtm.h \
 	encoding_custom.h \
 	custom_csr.h \
+	rv_ostream.h \
 
 riscv_install_hdrs = mmio_plugin.h
 
@@ -60,6 +61,7 @@ riscv_srcs = \
 	remote_bitbang.cc \
 	jtag_dtm.cc \
 	custom_csr.cc \
+	rv_ostream.cc \
 
 riscv_srcs_nodbg = \
 	$(riscv_gen_srcs) \

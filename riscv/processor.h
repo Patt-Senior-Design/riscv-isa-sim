@@ -6,6 +6,7 @@
 #include "config.h"
 #include "devices.h"
 #include "trap.h"
+#include "rv_ostream.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -270,7 +271,7 @@ class processor_t : public abstract_device_t
 public:
   processor_t(const char* isa, const char* priv, const char* varch,
               simif_t* sim, uint32_t id, bool halt_on_reset,
-              FILE *log_file);
+              std::ostream& log_file);
   ~processor_t();
 
   void set_debug(bool value);
@@ -319,7 +320,7 @@ public:
   void update_histogram(reg_t pc);
   const disassembler_t* get_disassembler() { return disassembler; }
 
-  FILE *get_log_file() { return log_file; }
+  rv_ostream_t& get_log_file() { return log_file; }
 
   void register_insn(insn_desc_t);
   void register_extension(extension_t*);
@@ -440,7 +441,7 @@ private:
   std::string isa_string;
   bool histogram_enabled;
   bool log_commits_enabled;
-  FILE *log_file;
+  rv_ostream_t log_file;
   bool halt_on_reset;
   std::vector<bool> extension_table;
   std::vector<bool> impl_table;
