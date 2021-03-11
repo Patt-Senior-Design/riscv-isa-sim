@@ -70,7 +70,6 @@ private:
   std::string dtb;
   std::string dtb_file;
   bool dtb_enabled;
-  std::unique_ptr<rom_device_t> boot_rom;
   std::unique_ptr<clint_t> clint;
   bus_t bus;
   log_file_t log_file;
