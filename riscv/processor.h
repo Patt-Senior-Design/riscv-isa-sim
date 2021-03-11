@@ -11,6 +11,8 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <queue>
+#include <set>
 #include <cassert>
 #include "debug_rom_defines.h"
 #include "entropy_source.h"
@@ -271,7 +273,7 @@ class processor_t : public abstract_device_t
 public:
   processor_t(const char* isa, const char* priv, const char* varch,
               simif_t* sim, uint32_t id, bool halt_on_reset,
-              std::ostream& log_file);
+              std::ostream& log_file, const std::set<std::string>& csrmask);
   ~processor_t();
 
   void set_debug(bool value);
@@ -279,6 +281,10 @@ public:
 #ifdef RISCV_ENABLE_COMMITLOG
   void enable_log_commits();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
+  void push_rtl_commit(const std::string& commit);
+  void push_spike_commit(const std::string& commit);
+  void check_commits();
+  void override_csr(int csr);
 #endif
   void reset();
   void step(size_t n); // run for n cycles
@@ -453,6 +459,13 @@ private:
 
   static const size_t OPCODE_CACHE_SIZE = 8191;
   insn_desc_t opcode_cache[OPCODE_CACHE_SIZE];
+
+#ifdef RISCV_ENABLE_COMMITLOG
+  std::queue<std::string> rtl_commits;
+  std::queue<std::string> spike_commits;
+#endif
+
+  const std::set<std::string>& csrmask;
 
   void take_pending_interrupt() { take_interrupt(state.mip & state.mie); }
   void take_interrupt(reg_t mask); // take first enabled interrupt in mask

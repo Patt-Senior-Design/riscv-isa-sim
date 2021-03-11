@@ -47,6 +47,8 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --extension=<name>    Specify RoCC Extension\n");
   fprintf(stderr, "  --extlib=<name>       Shared library to load\n");
   fprintf(stderr, "                        This flag can be used multiple times.\n");
+  fprintf(stderr, "  --cosim=<path>        Enable cosim mode, using given file as rtl trace\n");
+  fprintf(stderr, "  --csrmask=<a,b,...>   In cosim mode, override given csrs with rtl values\n");
   fprintf(stderr, "  --rbb-port=<port>     Listen on <port> for remote bitbang connection\n");
   fprintf(stderr, "  --dump-dts            Print device tree string and exit\n");
   fprintf(stderr, "  --disable-dtb         Don't write the device tree blob into memory\n");
@@ -224,6 +226,8 @@ int main(int argc, char** argv)
   bool log_commits = false;
   const char *log_path = nullptr;
   std::function<extension_t*()> extension;
+  const char* cosim_path = nullptr;
+  std::set<std::string> csrmask;
   const char* initrd = NULL;
   const char* isa = DEFAULT_ISA;
   const char* priv = DEFAULT_PRIV;
@@ -299,6 +303,17 @@ int main(int argc, char** argv)
     plugin_devices.emplace_back(base, new mmio_plugin_device_t(name, args));
   };
 
+  auto const csrmask_parser = [&](const char *s) {
+    const std::string str(s);
+    for (size_t pos = 0; pos < str.length();) {
+      size_t end = str.find_first_of(',', pos);
+      size_t len = (end == std::string::npos) ? std::string::npos : (end - pos);
+      const std::string& csr = str.substr(pos, len);
+      if (!csr.empty()) {csrmask.insert(csr);}
+      pos = (end == std::string::npos) ? std::string::npos : (end + 1);
+    }
+  };
+
   option_parser_t parser;
   parser.help(&suggest_help);
   parser.option('h', "help", 0, [&](const char* s){help(0);});
@@ -335,6 +350,8 @@ int main(int argc, char** argv)
       exit(-1);
     }
   });
+  parser.option(0, "cosim", 1, [&](const char *s){cosim_path = s;});
+  parser.option(0, "csrmask", 1, csrmask_parser);
   parser.option(0, "dm-progsize", 1,
       [&](const char* s){dm_config.progbufsize = atoul_safe(s);});
   parser.option(0, "dm-no-impebreak", 0,
@@ -394,7 +411,7 @@ int main(int argc, char** argv)
 
   sim_t s(isa, priv, varch, nprocs, halted, real_time_clint,
       initrd_start, initrd_end, bootargs, start_pc, mems, plugin_devices, htif_args,
-      std::move(hartids), dm_config, log_path, dtb_enabled, dtb_file);
+      std::move(hartids), cosim_path, csrmask, dm_config, log_path, dtb_enabled, dtb_file);
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *) NULL);
   std::unique_ptr<jtag_dtm_t> jtag_dtm(
       new jtag_dtm_t(&s.debug_module, dmi_rti));

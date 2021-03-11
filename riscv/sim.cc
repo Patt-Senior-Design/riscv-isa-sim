@@ -32,7 +32,8 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
              reg_t start_pc, std::vector<std::pair<reg_t, mem_t*>> mems,
              std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices,
              const std::vector<std::string>& args,
-             std::vector<int> const hartids,
+             std::vector<int> const hartids, const char *cosim_path,
+             const std::set<std::string>& csrmask,
              const debug_module_config_t &dm_config,
              const char *log_path,
              bool dtb_enabled, const char *dtb_file)
@@ -47,6 +48,8 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
     dtb_file(dtb_file ? dtb_file : ""),
     dtb_enabled(dtb_enabled),
     log_file(),
+    cosim_file(),
+    csrmask(csrmask),
     current_step(0),
     current_proc(0),
     debug(false),
@@ -56,6 +59,15 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
     debug_module(this, dm_config)
 {
   signal(SIGINT, &handle_signal);
+
+  if (cosim_path) {
+    cosim_file.open(cosim_path);
+    if (!cosim_file) {
+      std::ostringstream oss;
+      oss << "Failed to open cosim file at `" << cosim_path << "'";
+      throw std::runtime_error(oss.str());
+    }
+  }
 
   if (log_path) {
     log_file.open(log_path);
@@ -87,7 +99,8 @@ sim_t::sim_t(const char* isa, const char* priv, const char* varch,
   for (size_t i = 0; i < nprocs; i++) {
     int hart_id = hartids.empty() ? i : hartids[i];
     procs[i] = new processor_t(isa, priv, varch, this, hart_id, halted,
-                               log_file.is_open() ? log_file : std::cerr);
+                               log_file.is_open() ? log_file : std::cerr,
+                               csrmask);
   }
 
   make_dtb();
@@ -364,4 +377,32 @@ memif_endianness_t sim_t::get_target_endianness() const
 void sim_t::proc_reset(unsigned id)
 {
   debug_module.proc_reset(id);
+}
+
+int sim_t::pull_rtl_commits(unsigned id, int count)
+{
+  assert(cosim_file.is_open());
+
+  std::string commit;
+  for(int i = 0; i < count;) {
+    std::getline(cosim_file, commit);
+    if (unlikely(cosim_file.fail())) {return -1;}
+    if (unlikely(cosim_file.eof())) {return i;}
+    if (unlikely(commit.compare(0, 4, "core") != 0)) {continue;}
+
+    size_t end = commit.find_first_of(':', 4);
+    if (unlikely(end == std::string::npos)) {continue;}
+
+    std::string commit_id_str(commit, 4, end - 4);
+    unsigned commit_id;
+    try {
+      commit_id = std::stoul(commit_id_str);
+    } catch(...) {continue;}
+    if (unlikely(commit_id >= procs.size())) {continue;}
+
+    procs[commit_id]->push_rtl_commit(commit);
+    if (commit_id == id) {i++;}
+  }
+
+  return count;
 }

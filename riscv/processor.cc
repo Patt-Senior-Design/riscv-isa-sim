@@ -18,17 +18,20 @@
 #include <stdexcept>
 #include <string>
 #include <algorithm>
+#include <regex>
 
 #undef STATE
 #define STATE state
 
 processor_t::processor_t(const char* isa, const char* priv, const char* varch,
                          simif_t* sim, uint32_t id, bool halt_on_reset,
-                         std::ostream& log_file)
+                         std::ostream& log_file,
+                         const std::set<std::string>& csrmask)
   : debug(false), halt_request(HR_NONE), sim(sim), ext(NULL), id(id), xlen(0),
   histogram_enabled(false), log_commits_enabled(false),
   log_file(log_file), halt_on_reset(halt_on_reset),
-  extension_table(256, false), impl_table(256, false), last_pc(1), executions(1)
+  extension_table(256, false), impl_table(256, false),
+  csrmask(csrmask), last_pc(1), executions(1)
 {
   VU.p = this;
 
@@ -446,6 +449,103 @@ void processor_t::set_histogram(bool value)
 void processor_t::enable_log_commits()
 {
   log_commits_enabled = true;
+}
+
+void processor_t::push_rtl_commit(const std::string& commit)
+{
+  rtl_commits.push(commit);
+}
+
+void processor_t::push_spike_commit(const std::string& commit)
+{
+  spike_commits.push(commit);
+}
+
+void processor_t::check_commits()
+{
+  int diff = rtl_commits.size() - spike_commits.size();
+  if (diff < 0) {
+    int count = sim->pull_rtl_commits(id, -diff);
+    if (count < 0) {
+      std::cerr << "ERROR: file I/O error while reading rtl trace.\n";
+      exit(1);
+    } else if (count != -diff) {
+      std::cerr << "ERROR: got EOF while reading rtl trace.\n";
+      exit(1);
+    }
+  }
+
+  assert(rtl_commits.size() >= spike_commits.size());
+  while(!spike_commits.empty()) {
+    const std::string& spike_line = spike_commits.front();
+    const std::string& rtl_line = rtl_commits.front();
+    if (unlikely(spike_line != rtl_line)) {
+      std::cerr << "ERROR: mismatch occurred in cosimulation.\n";
+      std::cerr << "spike: " << spike_line << "\n";
+      std::cerr << "rtl:   " << rtl_line << "\n";
+      exit(1);
+    }
+
+    // log rtl_line since spike_line may have been overridden
+    log_file << rtl_line << "\n";
+
+    spike_commits.pop();
+    rtl_commits.pop();
+  }
+}
+
+void processor_t::override_csr(int csr)
+{
+  check_commits();
+  if (rtl_commits.empty()) {
+    int count = sim->pull_rtl_commits(id, 1);
+    if (count < 0) {
+      std::cerr << "ERROR: file I/O error while reading rtl trace.\n";
+      exit(1);
+    } else if (count < 1) {
+      std::cerr << "ERROR: got EOF while reading rtl trace.\n";
+      exit(1);
+    }
+  }
+
+  assert(!rtl_commits.empty());
+
+  std::regex regex(R"(core +\S+ \S+ \S+ \S+ (.*))");
+  std::smatch matches;
+  if (!std::regex_match(rtl_commits.front(), matches, regex)) {
+    std::cerr << "ERROR: regex failed in override_csr.\n";
+    exit(1);
+  }
+
+  std::istringstream match(matches[1].str());
+  std::string regstr, valstr;
+  size_t reg;
+  reg_t val;
+  while (std::getline(match, regstr, ' ')) {
+    switch(regstr.at(0)) {
+    case 'x':
+      if (regstr.length() > 1) {
+        reg = std::stoull(regstr.substr(1));
+      } else {
+        std::getline(match, regstr, ' ');
+        reg = std::stoull(regstr);
+      }
+      std::getline(match, valstr, ' ');
+      val = std::stoull(valstr, nullptr, 0);
+      state.XPR.write(reg, val);
+      break;
+    case 'c':
+      std::getline(match, valstr, ' ');
+      val = std::stoull(valstr, nullptr, 0);
+      set_csr(csr, val);
+      break;
+    default:
+      goto done;
+    }
+  }
+
+ done:
+  push_spike_commit(rtl_commits.front());
 }
 #endif
 

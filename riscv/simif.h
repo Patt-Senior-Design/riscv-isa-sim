@@ -17,6 +17,10 @@ public:
   // Callback for processors to let the simulation know they were reset.
   virtual void proc_reset(unsigned id) = 0;
 
+  // Callback for processors to request commits from cosim
+  // If return value < count, indicates EOF
+  virtual int pull_rtl_commits(unsigned id, int count) = 0;
+
   virtual const char* get_symbol(uint64_t addr) = 0;
 
 };

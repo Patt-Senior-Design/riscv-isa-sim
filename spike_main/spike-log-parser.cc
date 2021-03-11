@@ -27,7 +27,7 @@ int main(int argc, char** argv)
   parser.option(0, "isa", 1, [&](const char* s){isa = s;});
   parser.parse(argv);
 
-  processor_t p(isa, DEFAULT_PRIV, DEFAULT_VARCH, 0, 0, false, std::cerr);
+  processor_t p(isa, DEFAULT_PRIV, DEFAULT_VARCH, 0, 0, false, std::cerr, std::set<std::string>());
   if (extension) {
     p.register_extension(extension());
   }

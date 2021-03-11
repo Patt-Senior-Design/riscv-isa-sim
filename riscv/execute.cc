@@ -154,7 +154,7 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
   }
 
   const std::string& line_str = line_buf.str();
-  p->get_log_file() << line_str;
+  p->push_spike_commit(line_str);
 }
 #else
 static void commit_log_reset(processor_t* p) {}
@@ -233,6 +233,19 @@ void processor_t::step(size_t n)
     size_t instret = 0;
     reg_t pc = state.pc;
     mmu_t* _mmu = mmu;
+
+    // TODO will not work if the csr access triggers an exception
+    if (state.serialized) {
+      insn_fetch_t fetch = mmu->load_insn(pc);
+      if (((fetch.insn.bits() & 0x7f) == 0x73) &&
+          (fetch.insn.bits() & 0x3000) &&
+          csrmask.count(csr_name(fetch.insn.csr()))) {
+        override_csr(fetch.insn.csr());
+        pc = state.pc = sext_xlen(state.pc + 4);
+        instret++;
+        state.serialized = false;
+      }
+    }
 
     #define advance_pc() \
      if (unlikely(invalid_pc(pc))) { \
@@ -379,4 +392,6 @@ void processor_t::step(size_t n)
     state.minstret += instret;
     n -= instret;
   }
+
+  check_commits();
 }

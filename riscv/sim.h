@@ -29,6 +29,7 @@ public:
         reg_t start_pc, std::vector<std::pair<reg_t, mem_t*>> mems,
         std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices,
         const std::vector<std::string>& args, const std::vector<int> hartids,
+        const char *cosim_path, const std::set<std::string>& csrmask,
         const debug_module_config_t &dm_config, const char *log_path,
         bool dtb_enabled, const char *dtb_file);
   ~sim_t();
@@ -57,6 +58,10 @@ public:
   // Callback for processors to let the simulation know they were reset.
   void proc_reset(unsigned id);
 
+  // Callback for processors to request commits from cosim
+  // If return value < count, indicates EOF
+  int pull_rtl_commits(unsigned id, int count);
+
 private:
   std::vector<std::pair<reg_t, mem_t*>> mems;
   std::vector<std::pair<reg_t, abstract_device_t*>> plugin_devices;
@@ -73,6 +78,9 @@ private:
   std::unique_ptr<clint_t> clint;
   bus_t bus;
   std::ofstream log_file;
+
+  std::ifstream cosim_file;
+  const std::set<std::string>& csrmask;
 
   processor_t* get_core(const std::string& i);
   void step(size_t n); // step through simulation
