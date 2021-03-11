@@ -52,6 +52,11 @@ m4_include(ax_append_link_flags.m4)
 # Checks for programs
 #-------------------------------------------------------------------------
 
+# Change default FLAGS to the empty string
+# By default, autoconf uses '-O2 -g' (???)
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_CHECK_TOOL([AR],[ar])
