@@ -8,6 +8,7 @@
 #include "simif.h"
 #include "mmu.h"
 #include "disasm.h"
+#include "custom_csr.h"
 #include <cinttypes>
 #include <cmath>
 #include <cstdlib>
@@ -1279,6 +1280,10 @@ void processor_t::set_csr(int which, reg_t val)
       break;
   }
 
+  if(is_custom_csr(which)) {
+    set_custom_csr(this, which, val);
+  }
+
 #if defined(RISCV_ENABLE_COMMITLOG)
   switch (which)
   {
@@ -1361,6 +1366,10 @@ void processor_t::set_csr(int which, reg_t val)
     case CSR_MNOISE:
       LOG_CSR(which);
       break;
+  }
+
+  if(is_custom_csr(which)) {
+    LOG_CSR(which);
   }
 #endif
 }
@@ -1709,6 +1718,10 @@ reg_t processor_t::get_csr(int which, insn_t insn, bool write, bool peek)
       if (!supports_extension('V'))
         break;
       ret(VU.vlenb);
+  }
+
+  if (is_custom_csr(which)) {
+    ret(get_custom_csr(this, which, insn, write, peek));
   }
 
 #undef ret

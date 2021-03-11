@@ -5,6 +5,8 @@
 
 /* See LICENSE for license details. */
 
+#include "encoding_custom.h"
+
 #ifndef RISCV_CSR_ENCODING_H
 #define RISCV_CSR_ENCODING_H
 
