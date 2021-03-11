@@ -57,6 +57,8 @@ riscv_srcs = \
 	debug_module.cc \
 	remote_bitbang.cc \
 	jtag_dtm.cc \
+
+riscv_srcs_nodbg = \
 	$(riscv_gen_srcs) \
 
 riscv_test_srcs =

@@ -213,8 +213,10 @@ _$(1).cc :
 
 $(2)_pch := $$(patsubst %.h, %.h.gch, $$($(2)_precompiled_hdrs))
 $(2)_objs := $$(patsubst %.cc, %.o, $$($(2)_srcs))
+$(2)_objs_nodbg := $$(patsubst %.cc, %.o, $$($(2)_srcs_nodbg))
 $(2)_c_objs := $$(patsubst %.c, %.o, $$($(2)_c_srcs))
 $(2)_deps := $$(patsubst %.o, %.d, $$($(2)_objs))
+$(2)_deps += $$(patsubst %.o, %.d, $$($(2)_objs_nodbg))
 $(2)_deps += $$(patsubst %.o, %.d, $$($(2)_c_objs))
 $(2)_deps += $$(patsubst %.h, %.h.d, $$($(2)_precompiled_hdrs))
 $$($(2)_pch) : %.h.gch : %.h
@@ -222,10 +224,12 @@ $$($(2)_pch) : %.h.gch : %.h
 # If using clang, don't depend (and thus don't build) precompiled headers
 $$($(2)_objs) : %.o : %.cc $$($(2)_gen_hdrs) $(if $(filter-out clang,$(CC)),$$($(2)_pch))
 	$(COMPILE) $$($(2)_CFLAGS) -c $$<
+$$($(2)_objs_nodbg) : %.o : %.cc $$($(2)_gen_hdrs) $(if $(filter-out clang,$(CC)),$$($(2)_pch))
+	$(COMPILE) $$($(2)_CFLAGS) -g0 -c $$<
 $$($(2)_c_objs) : %.o : %.c $$($(2)_gen_hdrs)
 	$(COMPILE_C) $$($(2)_CFLAGS) -c $$<
 
-$(2)_junk += $$($(2)_pch) $$($(2)_objs) $$($(2)_c_objs) $$($(2)_deps) \
+$(2)_junk += $$($(2)_pch) $$($(2)_objs) $$($(2)_objs_nodbg) $$($(2)_c_objs) $$($(2)_deps) \
   $$($(2)_gen_hdrs)
 
 # Reverse the dependency list so that a given subproject only depends on
@@ -241,9 +245,9 @@ $(2)_lib_libnames   := $$(patsubst %, lib%.a, $$($(2)_lib_libs))
 $(2)_lib_libarg     := $$(patsubst %, -l%, $$($(2)_lib_libs))
 $(2)_lib_libnames_shared	:= $$(if $$($(2)_install_shared_lib),lib$(1).so,)
 
-lib$(1).a : $$($(2)_objs) $$($(2)_c_objs) $$($(2)_lib_libnames)
+lib$(1).a : $$($(2)_objs) $$($(2)_objs_nodbg) $$($(2)_c_objs) $$($(2)_lib_libnames)
 	$(AR) rcs $$@ $$^
-lib$(1).so : $$($(2)_objs) $$($(2)_c_objs) $$($(2)_lib_libnames_shared) $$($(2)_lib_libnames)
+lib$(1).so : $$($(2)_objs) $$($(2)_objs_nodbg) $$($(2)_c_objs) $$($(2)_lib_libnames_shared) $$($(2)_lib_libnames)
 	$(LINK) -shared -o $$@ $(if $(filter Darwin,$(shell uname -s)),-install_name $(install_libs_dir)/$$@) $$^ $$($(2)_lib_libnames) $(LIBS)
 
 $(2)_junk += lib$(1).a
@@ -327,7 +331,7 @@ clean-$(1) :
 # Update running variables
 
 libs += lib$(1).a
-objs += $$($(2)_objs)
+objs += $$($(2)_objs) $$($(2)_objs_nodbg)
 srcs += $$(addprefix $(src_dir)/$(1)/, $$($(2)_srcs)) 
 hdrs += $$(addprefix $(src_dir)/$(1)/, $$($(2)_hdrs)) $$($(2)_gen_hdrs)
 junk += $$($(2)_junk)
