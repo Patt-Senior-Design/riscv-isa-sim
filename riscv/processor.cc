@@ -485,13 +485,13 @@ void processor_t::check_commits()
   }
 
   assert(rtl_commits.size() >= spike_commits.size());
-  while(!spike_commits.empty()) {
+  while (!spike_commits.empty()) {
     const std::string& spike_line = spike_commits.front();
     const std::string& rtl_line = rtl_commits.front();
     if (unlikely(spike_line != rtl_line)) {
-      std::cerr << "ERROR: mismatch occurred in cosimulation.\n";
-      std::cerr << "spike: " << spike_line << "\n";
-      std::cerr << "rtl:   " << rtl_line << "\n";
+      std::cout << "ERROR: mismatch occurred in cosimulation.\n";
+      std::cout << "spike: " << spike_line << "\n";
+      std::cout << "rtl:   " << rtl_line << "\n";
       exit(1);
     }
 
