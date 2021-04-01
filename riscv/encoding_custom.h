@@ -17,6 +17,7 @@
 #define CSR_MBFSTARG 0x7d2
 #define CSR_MBFSQBASE 0x7d3
 #define CSR_MBFSQSIZE 0x7d4
+#define CSR_ML2STAT 0x7e0
 
 #endif
 
@@ -29,4 +30,5 @@ DECLARE_CSR(mbfsroot, CSR_MBFSROOT)
 DECLARE_CSR(mbfstarg, CSR_MBFSTARG)
 DECLARE_CSR(mbfsqbase, CSR_MBFSQBASE)
 DECLARE_CSR(mbfsqsize, CSR_MBFSQSIZE)
+DECLARE_CSR(ml2stat, CSR_ML2STAT)
 #endif
