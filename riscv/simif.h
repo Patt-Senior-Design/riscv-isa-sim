@@ -18,6 +18,7 @@ public:
   virtual void proc_reset(unsigned id) = 0;
 
   // Callback for processors to request commits from cosim
+  virtual bool get_cosim_enabled() = 0;
   // If return value < count, indicates EOF
   virtual int pull_rtl_commits(unsigned id, int count) = 0;
 

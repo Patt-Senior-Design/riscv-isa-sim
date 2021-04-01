@@ -59,6 +59,7 @@ public:
   void proc_reset(unsigned id);
 
   // Callback for processors to request commits from cosim
+  bool get_cosim_enabled();
   // If return value < count, indicates EOF
   int pull_rtl_commits(unsigned id, int count);
 

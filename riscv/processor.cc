@@ -463,6 +463,15 @@ void processor_t::push_spike_commit(const std::string& commit)
 
 void processor_t::check_commits()
 {
+  if (!sim->get_cosim_enabled()) {
+    while (!spike_commits.empty()) {
+      log_file << spike_commits.front() << "\n";
+      spike_commits.pop();
+    }
+    return;
+  }
+
+
   int diff = rtl_commits.size() - spike_commits.size();
   if (diff < 0) {
     int count = sim->pull_rtl_commits(id, -diff);

@@ -379,9 +379,14 @@ void sim_t::proc_reset(unsigned id)
   debug_module.proc_reset(id);
 }
 
+bool sim_t::get_cosim_enabled()
+{
+  return cosim_file.is_open();
+}
+
 int sim_t::pull_rtl_commits(unsigned id, int count)
 {
-  assert(cosim_file.is_open());
+  assert(get_cosim_enabled());
 
   std::string commit;
   for(int i = 0; i < count;) {
